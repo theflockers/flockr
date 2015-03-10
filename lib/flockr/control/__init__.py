@@ -10,7 +10,7 @@ from libcloud.compute.providers import get_driver
 
 
 import os, sys, re
-import shutil
+import shutil, urllib
 import tarfile
 import random, time
 
@@ -22,7 +22,7 @@ class Control:
 
   cfg = None
 
-  def __init__(self): pass
+#  def __init__(self, name): pass
 
   def download_base_system(self):
     print colored('Base S.O. archive format:', 'yellow'), colored(self.cfg.get('build')['base_format'], 'green')
@@ -43,13 +43,18 @@ class Control:
   def clone_application(self):
     app_dir = '%s/app' % self.tmp_build_dir
     print colored('=> Fetching application from %s' % (self.cfg.get('build')['application_repository']), 'yellow')
-    p = Popen(['/usr/bin/git','clone', self.cfg.get('build')['application_repository'], app_dir], stderr=PIPE, stdout=PIPE)
-    p.wait()
-    res = p.communicate()
-    if len(res[1]) != 0:
-      print colored('=> ERROR:', 'yellow'), colored('%s' % ( res[1] ), 'red')
-    else:
-      print colored('=> %s ' % (res[0].strip()), 'yellow')
+    if self.cfg.get('build')['repository_type'] == 'GIT':
+      p = Popen(['/usr/bin/git','clone', self.cfg.get('build')['application_repository'], app_dir], stderr=PIPE, stdout=PIPE)
+      p.wait()
+      res = p.communicate()
+      if len(res[1]) != 0:
+        print colored('=> ERROR:', 'yellow'), colored('%s' % ( res[1] ), 'red')
+      else:
+        print colored('=> %s ' % (res[0].strip()), 'yellow')
+    elif self.cfg.get('build')['repository_type'] == 'TAR':
+      src = urllib.urlretrieve(self.cfg.get('build')['application_repository'], '%s/%s.tar' % (self.tmp_build_dir, self.appname ) )
+      tar = tarfile.open(src[0])
+      tar.extractall(app_dir)
 
   def merge_application(self):
     wwwroot = '%s/root-fs/%s' % ( self.tmp_build_dir, self.cfg.get('build')['application_wwwroot'] )
@@ -63,8 +68,8 @@ class Control:
     shutil.copytree(srcdir, wwwroot)
 
   def create_archive(self):
-    print colored('=> Creating archive %s/app-%s.tar' % (self.name, self.name),'yellow')
-    tar = tarfile.open('%s/app-%s.tar' %  (self.name, self.name), 'w:' )
+    print colored('=> Creating archive %s/app-%s.tar' % (self.appname, self.appname),'yellow')
+    tar = tarfile.open('%s/app-%s.tar' %  (self.appname, self.appname), 'w:' )
     for root, dirs, files in os.walk('%s/root-fs' % self.tmp_build_dir ):
       for f in files:
         filepath =  "%s/%s" % (root,f)
@@ -76,17 +81,15 @@ class Control:
 
   def create(self, node): pass
 
+  def list(self): pass
+
   def delete(self, node): pass
 
-  def build(self, name):
-    # opening config
-    self.name = name
-    self.cfg = config.Config('%s/config.yaml' % (self.name) )
-
+  def build(self):
     self.tmp_build_dir = '%s/%s'  % (self.cfg.get('build')['tmpdir'], \
         self.__BUILD_DIRECTORY_NAME)
 
-    print colored( '\n* Building app %s *\n' % self.name, 'yellow')
+    print colored( '\n* Building app %s *\n' % self.appname, 'yellow')
     self.download_base_system()
     self.clone_application()
     self.merge_application()
@@ -94,22 +97,40 @@ class Control:
 
     print colored('\n+++ Build done. Now you may want register a template +++\n', 'green')
 
-  def register(self): pass
+  def template(self):
 
-  def app(self, name):
-    if name == 'None':
+    opts = ['register','list']
+    for opt in opts:
+      if eval('self.options.%s' % opt):
+        eval('self.%s()' % (opt))
+
+  def register(self):
+    print self.cfg.get('template')
+
+
+  def app(self):
+    if self.appname == 'None':
       print colored('=> ERROR: ', 'yellow'), colored('Missing application name', 'red')
       return 0
 
     try:
-      os.mkdir(name)
-      f = open('%s/config.yaml' % (name), 'w')
+      os.mkdir(self.appname)
+      f = open('%s/config.yaml' % (self.appname), 'w')
       f.write(open('/usr/share/flockr/example/config.yaml-example','r').read())
       f.close()
     except Exception, e: pass
 
   def run(self, options):
-    opts = ['create','delete','build','app']
+    opts = ['create','delete','build','app','template']
+    self.options = options
+    self.appname = options.appname
+
+    if options.appname == None and options.app:
+      print colored('=> ERROR: ', 'yellow'), colored('Missing application name', 'red')
+      return 0
+
     for opt in opts:
       if eval('options.%s' % opt):
-        eval('self.%s("%s")' % (opt, options.name) )
+        if opt != 'app':
+          self.cfg = config.Config('%s/config.yaml' % (options.appname) )
+        eval('self.%s()' % (opt) )
