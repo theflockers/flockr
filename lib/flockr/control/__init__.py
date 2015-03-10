@@ -104,7 +104,7 @@ class Control:
     try:
       os.mkdir(name)
       f = open('%s/config.yaml' % (name), 'w')
-      f.write(open('lib/flockr/example/config.yaml-example','r').read())
+      f.write(open('/usr/share/flockr/example/config.yaml-example','r').read())
       f.close()
     except Exception, e: pass
 
