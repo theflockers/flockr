@@ -2,13 +2,15 @@
 
 from Queue import Queue
 from threading import Thread
-from pprint import pprint
+from termcolor import colored
+from subprocess import Popen, PIPE
 
 from libcloud.compute.types import Provider
 from libcloud.compute.providers import get_driver
 
-import ConfigParser
+
 import os, sys, re
+import shutil
 import tarfile
 import random, time
 
@@ -20,25 +22,46 @@ class Control:
 
   cfg = None
 
-  def __init__(self): pass    
+  def __init__(self): pass
 
-  def download_base(self):
-    print self.cfg.get('build')
+  def download_base_system(self):
+    print colored('Base S.O. archive format:', 'yellow'), colored(self.cfg.get('build')['base_format'], 'green')
+    print
     if self.cfg.get('build')['base_format'] == 'TAR':
       tar = tarfile.open(self.cfg.get('build')['base_url'])
-      tmp_build_dir = '%s/%s/%s'  % (self.cfg.get('build')['tmpdir'], \
-        self.__BUILD_DIRECTORY_NAME, self.cfg.get('build')['base_url'])
-      os.makedirs(tmp_build_dir)
-      tar.extractall(tmp_build_dir) 
+      root_fs = '%s/root-fs' % (self.tmp_build_dir)
+      try:
+        print colored('=> Cleaning up tmpdir %s' % (root_fs), 'yellow')
+        shutil.rmtree(root_fs)
+        os.makedirs(root_fs)
+      except Exception, e:
+        print str(e)
+
+      print colored('=> Extracting Base S.O. files to %s' % (root_fs), 'yellow')
+      tar.extractall(root_fs)
+
+  def clone_application(self):
+    app_dir = '%s/app' % self.tmp_build_dir
+    print colored('=> Fetching application from %s' % (self.cfg.get('build')['application_repository']), 'yellow')
+    p = Popen(['/usr/bin/git','clone', self.cfg.get('build')['application_repository'], app_dir], stderr=PIPE, stdout=PIPE)
+    res = p.communicate()
+    if len(res[0]) == 0:
+      print colored('=> ERROR:', 'yellow'), colored('%s' % ( res[1] ), 'red')
 
   def create(self, node): pass
 
   def delete(self, node): pass
 
   def build(self, name):
-    print 'build', name
+    # opening config
     self.cfg = config.Config('%s/config.yaml' % (name) )
-    self.download_base()
+
+    self.tmp_build_dir = '%s/%s'  % (self.cfg.get('build')['tmpdir'], \
+        self.__BUILD_DIRECTORY_NAME)
+
+    print colored( '\n* Building app %s *\n' % name, 'yellow')
+    self.download_base_system()
+    self.clone_application()
 
   def register(self): pass
 
@@ -46,6 +69,7 @@ class Control:
     try:
       os.mkdir(name)
       f = open('%s/config.yaml' % (name), 'w')
+      f.write(open('lib/flockr/example/config.yaml','r').read())
       f.close()
     except Exception, e: pass
 
