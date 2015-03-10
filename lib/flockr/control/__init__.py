@@ -97,6 +97,10 @@ class Control:
   def register(self): pass
 
   def app(self, name):
+    if name == 'None':
+      print colored('=> ERROR: ', 'yellow'), colored('Missing application name', 'red')
+      return 0
+
     try:
       os.mkdir(name)
       f = open('%s/config.yaml' % (name), 'w')
