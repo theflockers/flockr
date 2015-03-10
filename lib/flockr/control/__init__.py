@@ -25,8 +25,8 @@ class Control:
   def download_base(self):
     print self.cfg.get('build')
     if self.cfg.get('build')['base_format'] == 'TAR':
-      tar = tarfile.open(self.cfg.get('base_url'))
-      tmp_build_dir = '%s/%s/%s'  % (self.cfg.get('build')['tmpdir'], self.__BUILD_DIRECTORY_NAME, self.cfg.get('build')['url'])
+      tar = tarfile.open(self.cfg.get('build')['base_url'])
+      tmp_build_dir = '%s/%s/%s'  % (self.cfg.get('build')['tmpdir'], self.__BUILD_DIRECTORY_NAME, self.cfg.get('build')['base_url'])
       os.mkdirs(tmp_build_dir)
       tar.extractall(tmp_build_dir) 
 
