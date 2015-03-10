@@ -1,0 +1,27 @@
+build:
+  tmpdir: /tmp
+  base_format: TAR
+  base_url: path_to_image_tarball
+  application_repository: repository_remote_url
+  application_wwwroot: /var/www/html/
+  repository_type: git
+
+template:
+  driver: cloudstack
+  name: app_name
+  zoneid: cloudstack_zone_id
+  ostypeid: cloudstack_os_type_id
+  upload_url: url to upload to
+  display_url: url to fectch template from (ssvm)
+  hypervisor: hyepervisor-type (LXC, XenServer)
+  format: template format (TAR)
+  hvm: false
+  versionate: true
+
+deploy:
+  driver: cloudstack
+  name: app_name
+  security_groups: security groups separeted by comma
+  instance_size: ex. m3.medium.local
+  template:  template name
+  count: 2
