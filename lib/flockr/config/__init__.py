@@ -6,9 +6,9 @@ class Config:
 
   yaml_data = None
 
-  def __init__(self):
+  def __init__(self, config):
     try:
-      c = open('config.yaml','r')
+      c = open(config,'r')
       self.yaml_data = yaml.load(c.read())
     except Exception, e:
       print str(e)

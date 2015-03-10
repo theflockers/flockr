@@ -7,7 +7,7 @@ import flockr.config as config
 import flockr.cmdline as cmdline
 import flockr.control as control
 
-cfg = config.Config()
+cfg = config.Config('flockr.yaml')
 cmd = cmdline.CmdLine()
 ctl = control.Control()
 
