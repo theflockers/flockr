@@ -13,6 +13,7 @@ class CmdLine:
     self.parser.add_option("-c", "--create", action="store_true", dest="create", help="create a new node")
     self.parser.add_option("-b", "--build", action="store_true", dest="build", help="build a image")
     self.parser.add_option("-d", "--delete", action="store_true", dest="delete", help="delete a node")
+    self.parser.add_option("-a", "--app" action="store_true", dest="app", help="new application")
 
     (self.options, args) = self.parser.parse_args()
 

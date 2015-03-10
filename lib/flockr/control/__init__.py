@@ -11,12 +11,12 @@ import ConfigParser
 import os, sys, re
 import random, time
 
+import flockr.config as config
+
 
 class Control:
 
-
   def __init__(self):
-
 
   def create(self, node):
 
