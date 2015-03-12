@@ -18,8 +18,8 @@ class CmdLine:
     self.parser.add_option("-n", "--node", action="store_true", dest="node", help="node")
     self.parser.add_option("-r", "--register", action="store_true", dest="register", help="register a template (need -t --template option)")
     self.parser.add_option("-l", "--list", action="store_true", dest="list", help="list nodes|templates (need -t or --node")
-    self.parser.add_option("--node-name", action="store_true", dest="node_name", help="node name")
-    self.parser.add_option("--template-name", action="store_true", dest="tplname", help="template name to create")
+    self.parser.add_option("--node-name", action="store", dest="nodename", help="node name")
+    self.parser.add_option("--template-name", action="store", dest="tplname", help="template name to create")
     self.parser.add_option("--application-name", action="store", dest="appname", help="node or application name")
 
     (self.options, args) = self.parser.parse_args()

@@ -9,6 +9,6 @@ import flockr.control as control
 
 cfg = config.Config('/etc/flockr/flockr.yaml')
 cmd = cmdline.CmdLine()
-ctl = control.Control()
+ctl = control.Control(cfg)
 
 ctl.run(cmd.get_options())

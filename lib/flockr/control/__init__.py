@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import CloudStack
 from Queue import Queue
 from threading import Thread
 from termcolor import colored
@@ -10,9 +11,11 @@ from libcloud.compute.providers import get_driver
 
 
 import os, sys, re
-import shutil, urllib
+import shutil
+import urllib,requests
 import tarfile
 import random, time
+import magic
 
 import flockr.config as config
 
@@ -21,8 +24,10 @@ class Control:
   __BUILD_DIRECTORY_NAME = 'flockr-build'
 
   cfg = None
+  main_cfg = None
 
-#  def __init__(self, name): pass
+  def __init__(self, cfg):
+    self.main_cfg = cfg
 
   def download_base_system(self):
     print colored('Base S.O. archive format:', 'yellow'), colored(self.cfg.get('build')['base_format'], 'green')
@@ -95,18 +100,74 @@ class Control:
     self.merge_application()
     self.create_archive()
 
-    print colored('\n+++ Build done. Now you may want register a template +++\n', 'green')
+    print colored('\n+++ Build done. Now you may want to register a template +++\n', 'green')
 
   def template(self):
+    # using CloudStack client because templates registration is not
+    # covered by libcloud
+    cfg = self.main_cfg.get('production')
+
+    self.api_url = cfg['url']
+    self.api_key = cfg['apikey']
+    self.secret  = cfg['secretkey']
+
+    self.acs = CloudStack.Client(self.api_url, self.api_key, self.secret)
 
     opts = ['register','list']
     for opt in opts:
       if eval('self.options.%s' % opt):
-        eval('self.%s()' % (opt))
+        eval('self.tpl_%s()' % (opt))
 
-  def register(self):
-    print self.cfg.get('template')
+  def tpl_register(self):
 
+    self.tpl_upload()
+    tplcfg = self.cfg.get('template')
+
+    tpldata = {
+      'name': '%s:%s' % (self.appname, self.options.tplname),
+      'displaytext': '%s:%s' % (self.appname, self.options.tplname),
+      'url': '%s/%s/app-%s.tar' % (tplcfg['display_url'], self.appname, self.appname),
+      'format': tplcfg['format'],
+      'hypervisor': tplcfg['hypervisor'],
+      'hvm': str(tplcfg['hvm']),
+      'ostypeid': tplcfg['ostypeid'],
+      'zoneid': tplcfg['zoneid'],
+    }
+    try:
+      self.acs.registerTemplate(tpldata)
+      print colored('=> Template %s created' % (tpldata['name']),'yellow'), colored('\n++ TIP: Use --list to see if is it ready ++', 'green')
+    except Exception, e:
+      print colored('=> ERROR:', 'yellow'), colored(str(e), 'red')
+
+  def tpl_upload(self):
+    upload_file_path = '%s/app-%s.tar' % (self.appname, self.appname)
+    upload_url  = self.cfg.get('template')['upload_url']
+    upload_file_params = {'file': upload_file_path }
+
+    m = magic.open(magic.MIME_TYPE)
+    m.load()
+
+    try:
+      res = requests.put('%s/%s' % (upload_url, upload_file_path),
+          headers={'content-type': m.file(upload_file_path)},
+          params=upload_file_params,
+          data=open(upload_file_path).read())
+    except Exception, e:
+      print colored('=> ERROR:','yellow'), colored(str(e), 'red')
+
+  def tpl_list(self):
+    tpls = self.acs.listTemplates({'templatefilter': 'self'})
+    for tpl in tpls:
+      for key, val in tpl.items():
+        #print key, val
+        if key == 'name':
+          if re.match(self.appname, val):
+            if re.match('.*Complete$', tpl['status']):
+              color = 'green'
+            else:
+              color = 'red'
+
+            print colored('=> %s' % val, 'yellow'), colored('%s' % (tpl['status']), color)
 
   def app(self):
     if self.appname == 'None':
