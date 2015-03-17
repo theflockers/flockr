@@ -24,8 +24,9 @@ class Control:
 
   __BUILD_DIRECTORY_NAME = 'flockr-build'
 
-  cfg = None
-  main_cfg = None
+  cfg       = None
+  main_cfg  = None
+  __output = True
 
   def __init__(self, cfg):
     self.main_cfg = cfg
@@ -125,8 +126,6 @@ class Control:
 
   def list(self): pass
 
-  def delete(self): pass
-
   def build(self):
     self.tmp_build_dir = '%s/%s'  % (self.cfg.get('build')['tmpdir'], \
         self.__BUILD_DIRECTORY_NAME)
@@ -166,7 +165,7 @@ class Control:
 
     self.acs = CloudStack.Client(self.api_url, self.api_key, self.secret)
 
-    opts = ['list']
+    opts = ['list','destroy']
     for opt in opts:
       if eval('self.options.%s' % opt):
         eval('self.nd_%s()' % (opt))
@@ -210,7 +209,16 @@ class Control:
       print colored('=> ERROR:','yellow'), colored(str(e), 'red')
 
   def tpl_list(self):
-    tpls = self.acs.listTemplates({'templatefilter': 'self'})
+
+    args = {'templatefilter': 'self'}
+
+    if self.options.tplver:
+      args['name'] = '%s:%s' % (self.options.appname, self.options.tplver)
+
+    tpls = self.acs.listTemplates(args)
+    if not self.__output:
+      return tpls
+
     for tpl in tpls:
       for key, val in tpl.items():
         #print key, val
@@ -224,7 +232,17 @@ class Control:
             print colored('=> %s' % val, 'yellow'), colored('%s' % (tpl['status']), color)
 
   def nd_list(self):
-    nds    = self.acs.listVirtualMachines({'templatefilter': 'self'})
+    args = {'templatefilter': 'self'}
+    if self.options.nodename:
+      args['name'] = self.options.nodename
+    if self.options.tplver:
+      args['templateid'] = self.tpl_list()[0]['id']
+    # list
+    nds    = self.acs.listVirtualMachines(args)
+
+    if not self.__output:
+      return nds
+
     clist  = ['blue','cyan','white','magenta']
     cidx   = 0
     colord = {}
@@ -244,6 +262,21 @@ class Control:
 
             print colored('=> %s (%s)' % (val,nd['serviceofferingname']), 'yellow'), colored('%s' % (nd['templatedisplaytext']), colord[nd['templatedisplaytext']]), colored('%s' % (nd['state']), color)
 
+  def nd_destroy(self):
+    # turn off output
+    self.__output = False
+
+    node = self.nd_list()
+    if node:
+      print colored('\n*** Destroy node ***\n', 'red')
+      for n in node:
+        print colored('=> NODE: %s ' % n['displayname'],'yellow')
+
+      answ = raw_input(colored('\nAre you user you want to destroy this node(s) [Yes|No]: ', 'white'))
+      if re.search('^(y|yes)$', answ, re.IGNORECASE):
+        for n in node:
+          self.acs.destroyVirtualMachine({'id': n['id'], 'expunge': 'true'})
+
   def app(self):
     if self.appname == 'None':
       print colored('=> ERROR: ', 'yellow'), colored('Missing application name', 'red')
@@ -257,7 +290,7 @@ class Control:
     except Exception, e: pass
 
   def run(self, options):
-    opts = ['deploy','delete','build','app','template','node']
+    opts = ['deploy','build','app','template','node']
     self.options = options
     self.appname = options.appname
 
