@@ -1,7 +1,7 @@
 # flockr
 LXC manager for Cloudstack
 
-============ Requirements ===============
 pip
 pyyaml
-libcloud
+CloudStack
+python-magic
