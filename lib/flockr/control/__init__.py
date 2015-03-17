@@ -14,6 +14,7 @@ import os, sys, re
 import shutil
 import urllib,requests
 import tarfile
+from pprint import pprint
 import random, time
 import magic
 
@@ -75,20 +76,56 @@ class Control:
   def create_archive(self):
     print colored('=> Creating archive %s/app-%s.tar' % (self.appname, self.appname),'yellow')
     tar = tarfile.open('%s/app-%s.tar' %  (self.appname, self.appname), 'w:' )
-    for root, dirs, files in os.walk('%s/root-fs' % self.tmp_build_dir ):
-      for f in files:
-        filepath =  "%s/%s" % (root,f)
-        arcname =  re.sub('%s/root-fs/' % self.tmp_build_dir, '', filepath)
-        if re.search('.git\/', root):
-          continue
-        tar.add('%s/%s' % (root, f), arcname = arcname)
+    lst = os.listdir('%s/root-fs' % self.tmp_build_dir)
+    for l in lst:
+      tar.add('%s/root-fs/%s' % (self.tmp_build_dir, l), arcname=l)
+
     tar.close()
 
-  def create(self, node): pass
+  def deploy(self):
+    # using CloudStack client because templates registration is not
+    # covered by libcloud
+    cfg        = self.main_cfg.get('production')
+    deploy_cfg = self.cfg.get('deploy')
+
+    self.api_url = cfg['url']
+    self.api_key = cfg['apikey']
+    self.secret  = cfg['secretkey']
+
+    self.acs = CloudStack.Client(self.api_url, self.api_key, self.secret)
+
+    # template name to be used
+    tplname  = '%s:%s' % (self.appname, self.options.tplver )
+    try:
+
+      numnodes = 1
+      if self.options.numnodes:
+        numnodes = self.options.numnodes
+
+      instsize = deploy_cfg['instance_size']
+      if self.options.instsize:
+        instsize = self.options.instsize
+
+      for c in range(int(numnodes)):
+        nodename  = '%s-%i' % (self.options.nodename, random.uniform(10,99))
+        # Node definition
+        nodeData = {
+          'name': nodename,
+          'displayname': nodename,
+          'templateid': self.acs.listTemplates({'templatefilter': 'self', 'name': tplname})[0]['id'],
+          'zoneid': deploy_cfg['zoneid'],
+          'serviceofferingid': self.acs.listServiceOfferings({'name': instsize})[0]['id'],
+          'securitygroupnames': deploy_cfg['security_groups'],
+        }
+        self.acs.deployVirtualMachine(nodeData)
+      print colored('=> SUCCESS: %s nodes deployed' % numnodes, 'yellow')
+    except Exception, e:
+      print colored('=> ERROR:','yellow'), colored(str(e), 'red')
+
 
   def list(self): pass
 
-  def delete(self, node): pass
+  def delete(self): pass
 
   def build(self):
     self.tmp_build_dir = '%s/%s'  % (self.cfg.get('build')['tmpdir'], \
@@ -118,18 +155,35 @@ class Control:
       if eval('self.options.%s' % opt):
         eval('self.tpl_%s()' % (opt))
 
+  def node(self):
+    # using CloudStack client because templates registration is not
+    # covered by libcloud
+    cfg = self.main_cfg.get('production')
+
+    self.api_url = cfg['url']
+    self.api_key = cfg['apikey']
+    self.secret  = cfg['secretkey']
+
+    self.acs = CloudStack.Client(self.api_url, self.api_key, self.secret)
+
+    opts = ['list']
+    for opt in opts:
+      if eval('self.options.%s' % opt):
+        eval('self.nd_%s()' % (opt))
+
+
   def tpl_register(self):
 
     self.tpl_upload()
     tplcfg = self.cfg.get('template')
 
     tpldata = {
-      'name': '%s:%s' % (self.appname, self.options.tplname),
-      'displaytext': '%s:%s' % (self.appname, self.options.tplname),
+      'name': '%s:%s' % (self.appname, self.options.tplver),
+      'displaytext': '%s:%s' % (self.appname, self.options.tplver),
       'url': '%s/%s/app-%s.tar' % (tplcfg['display_url'], self.appname, self.appname),
       'format': tplcfg['format'],
       'hypervisor': tplcfg['hypervisor'],
-      'hvm': str(tplcfg['hvm']),
+      'requireshvm': str(tplcfg['hvm']),
       'ostypeid': tplcfg['ostypeid'],
       'zoneid': tplcfg['zoneid'],
     }
@@ -169,6 +223,27 @@ class Control:
 
             print colored('=> %s' % val, 'yellow'), colored('%s' % (tpl['status']), color)
 
+  def nd_list(self):
+    nds    = self.acs.listVirtualMachines({'templatefilter': 'self'})
+    clist  = ['blue','cyan','white','magenta']
+    cidx   = 0
+    colord = {}
+    for nd in nds:
+#      pprint(nd)
+      for key, val in nd.items():
+        if not nd['templatedisplaytext'] in colord:
+          colord[nd['templatedisplaytext']] = clist[cidx]
+          cidx = cidx+1
+        #print key, val
+        if key == 'name':
+          if re.match(self.appname, val):
+            if re.match('.*Running$', nd['state']):
+              color = 'green'
+            else:
+              color = 'red'
+
+            print colored('=> %s (%s)' % (val,nd['serviceofferingname']), 'yellow'), colored('%s' % (nd['templatedisplaytext']), colord[nd['templatedisplaytext']]), colored('%s' % (nd['state']), color)
+
   def app(self):
     if self.appname == 'None':
       print colored('=> ERROR: ', 'yellow'), colored('Missing application name', 'red')
@@ -182,7 +257,7 @@ class Control:
     except Exception, e: pass
 
   def run(self, options):
-    opts = ['create','delete','build','app','template']
+    opts = ['deploy','delete','build','app','template','node']
     self.options = options
     self.appname = options.appname
 
