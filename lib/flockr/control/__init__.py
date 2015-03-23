@@ -3,15 +3,15 @@
 import CloudStack
 from Queue import Queue
 from threading import Thread
-from termcolor import colored
-from subprocess import Popen, call, PIPE
+from termcolor import colored, cprint
+from subprocess import Popen, call, PIPE, STDOUT
 
 from libcloud.compute.types import Provider
 from libcloud.compute.providers import get_driver
 
 
 import os, sys, re
-import shutil
+import shutil, shlex
 import urllib,requests
 import tarfile
 from pprint import pprint
@@ -24,9 +24,10 @@ class Control:
 
   __BUILD_DIRECTORY_NAME = 'flockr-build'
 
-  cfg       = None
-  main_cfg  = None
-  __output = True
+  cfg           = None
+  main_cfg      = None
+  __output      = True
+  __already_off = False
 
   def __init__(self, cfg):
     self.main_cfg = cfg
@@ -75,13 +76,32 @@ class Control:
     shutil.copytree(srcdir, wwwroot)
 
   def create_archive(self):
-    print colored('=> Creating archive %s/app-%s.tar' % (self.appname, self.appname),'yellow')
-    tar = tarfile.open('%s/app-%s.tar' %  (self.appname, self.appname), 'w:' )
+    print colored('=> Creating archive %s/%s.tar' % (self.appname, self.appname),'yellow')
+
+    tplcfg = self.cfg.get('template')
+    tplext = tplcfg['format'].lower()
+
+    if tplcfg['isextractable']:
+      tplext = '%s.gz' % tplext
+
+    tar = tarfile.open('%s/%s.%s' %  (self.appname, self.appname, tplext), 'w:gz' )
     lst = os.listdir('%s/root-fs' % self.tmp_build_dir)
     for l in lst:
       tar.add('%s/root-fs/%s' % (self.tmp_build_dir, l), arcname=l)
 
     tar.close()
+
+  def create_image(self):
+    root_fs = '%s/root-fs' % self.tmp_build_dir
+    p = Popen(['genisoimage','-f','-r','-o','/tmp/flockr-build/%s.iso' % (self.appname), root_fs], stderr=STDOUT, stdout=PIPE)
+    res = p.communicate()
+    eval('self.create_%s()' % (self.options.buildtype))
+    #print colored('=> ERROR:', 'yellow'), colored('%s' % ( res[0] ), 'red')
+
+  def create_vhd(self):
+    cmd = 'qemu-img convert -f host_cdrom -O vpc %s/%s.iso %s/%s.vhd' % (self.tmp_build_dir, self.appname, self.appname, self.appname)
+    p = Popen(shlex.split(cmd),  stderr=PIPE, stdout=PIPE)
+    p.wait()
 
   def deploy(self):
     # using CloudStack client because templates registration is not
@@ -130,11 +150,19 @@ class Control:
     self.tmp_build_dir = '%s/%s'  % (self.cfg.get('build')['tmpdir'], \
         self.__BUILD_DIRECTORY_NAME)
 
+    if not self.options.buildtype:
+      print colored( '* don\'t know what to build... use --build-type=[lxc|qcow2|vhd]', 'yellow')
+      return
+
     print colored( '\n* Building app %s *\n' % self.appname, 'yellow')
     self.download_base_system()
     self.clone_application()
     self.merge_application()
-    self.create_archive()
+
+    if re.search('^lxc$', self.options.buildtype, re.IGNORECASE):
+      self.create_archive()
+    if re.search('^(vhd|qcow2)$', self.options.buildtype, re.IGNORECASE):
+      self.create_image()
 
     print colored('\n+++ Build done. Now you may want to register a template +++\n', 'green')
 
@@ -149,7 +177,7 @@ class Control:
 
     self.acs = CloudStack.Client(self.api_url, self.api_key, self.secret)
 
-    opts = ['register','list']
+    opts = ['register','list','destroy']
     for opt in opts:
       if eval('self.options.%s' % opt):
         eval('self.tpl_%s()' % (opt))
@@ -173,18 +201,25 @@ class Control:
 
   def tpl_register(self):
 
-    self.tpl_upload()
+    if not self.tpl_upload():
+      return False
+
     tplcfg = self.cfg.get('template')
+    tplext = tplcfg['format'].lower()
+    if tplcfg['isextractable']:
+      tplext = '%s.gz' % tplext
 
     tpldata = {
       'name': '%s:%s' % (self.appname, self.options.tplver),
       'displaytext': '%s:%s' % (self.appname, self.options.tplver),
-      'url': '%s/%s/app-%s.tar' % (tplcfg['display_url'], self.appname, self.appname),
+      'url': '%s/%s/%s.%s' % (tplcfg['display_url'], self.appname, self.appname, tplext),
       'format': tplcfg['format'],
       'hypervisor': tplcfg['hypervisor'],
       'requireshvm': str(tplcfg['hvm']),
       'ostypeid': tplcfg['ostypeid'],
       'zoneid': tplcfg['zoneid'],
+      'passwordenabled': str(tplcfg['passwordenabled']),
+      'isextractable': str(tplcfg['isextractable']),
     }
     try:
       self.acs.registerTemplate(tpldata)
@@ -193,18 +228,31 @@ class Control:
       print colored('=> ERROR:', 'yellow'), colored(str(e), 'red')
 
   def tpl_upload(self):
-    upload_file_path = '%s/app-%s.tar' % (self.appname, self.appname)
-    upload_url  = self.cfg.get('template')['upload_url']
-    upload_file_params = {'file': upload_file_path }
+    try:
+      tplcfg = self.cfg.get('template')
+      tplext = tplcfg['format'].lower()
+      if tplcfg['isextractable']:
+        tplext = '%s.gz' % tplext
 
-    m = magic.open(magic.MIME_TYPE)
-    m.load()
+      upload_file_path = '%s/%s.%s' % (self.appname, self.appname, tplext)
+      upload_url  = self.cfg.get('template')['upload_url']
+      upload_file_params = {'file': upload_file_path }
+
+      m = magic.open(magic.MIME_TYPE)
+      m.load()
+
+    except Exception, e:
+      print 'could not upload template', str(e)
+      return False
 
     try:
       res = requests.put('%s/%s' % (upload_url, upload_file_path),
           headers={'content-type': m.file(upload_file_path)},
           params=upload_file_params,
           data=open(upload_file_path).read())
+
+      return True
+
     except Exception, e:
       print colored('=> ERROR:','yellow'), colored(str(e), 'red')
 
@@ -216,51 +264,90 @@ class Control:
       args['name'] = '%s:%s' % (self.options.appname, self.options.tplver)
 
     tpls = self.acs.listTemplates(args)
-    if not self.__output:
-      return tpls
-
+    tpld =[]
     for tpl in tpls:
       for key, val in tpl.items():
         #print key, val
         if key == 'name':
           if re.match(self.appname, val):
+            tpld.append(tpl)
             if re.match('.*Complete$', tpl['status']):
               color = 'green'
             else:
               color = 'red'
 
-            print colored('=> %s' % val, 'yellow'), colored('%s' % (tpl['status']), color)
+            if self.__output:
+              print colored('=> %s' % val, 'yellow'), colored('%s' % (tpl['status']), color)
+
+            return tpld
+
+  def tpl_destroy(self):
+    self.__output = False
+    tpls = self.tpl_list()
+
+    if tpls:
+      print colored('\n*** Destroy template ***\n', 'red')
+      for tpl in tpls:
+        print colored('=> TEMPLATE: %s ' % tpl['name'],'yellow')
+
+      names = []
+      if self.options.force:
+        for tpl in tpls:
+          names.append(tpl['name'])
+          self.acs.deleteTemplate({'id': tpl['id']})
+      else:
+        answ = raw_input(colored('\nAre you sure you want to destroy this template(s) [Yes|No]: ', 'white'))
+        if re.search('^(y|yes)$', answ, re.IGNORECASE):
+          for tpl in tpls:
+            names.append(tpl['name'])
+            self.acs.deleteTemplate({'id': tpl['id']})
+
+          print colored('\n=> DESTROYED:', 'yellow'), colored(', '.join(map(str, names)), 'green')
 
   def nd_list(self):
     args = {'templatefilter': 'self'}
     if self.options.nodename:
       args['name'] = self.options.nodename
     if self.options.tplver:
+      # turn off output just for this call
+      if self.__output == False:
+        self.__already_off = True
+      else:
+        self.__output = False
       args['templateid'] = self.tpl_list()[0]['id']
+      # ok, display output again
+      if not self.__already_off: self.__output = True
     # list
     nds    = self.acs.listVirtualMachines(args)
 
-    if not self.__output:
-      return nds
-
-    clist  = ['blue','cyan','white','magenta']
+    clist  = ['blue','cyan','white','green','magenta','red']
     cidx   = 0
     colord = {}
+    rnd    = []
     for nd in nds:
-#      pprint(nd)
+      #pprint(nd)
       for key, val in nd.items():
         if not nd['templatedisplaytext'] in colord:
           colord[nd['templatedisplaytext']] = clist[cidx]
-          cidx = cidx+1
+          if cidx == len(clist)-1:
+            cidx = 0
+          else:
+            cidx = cidx+1
         #print key, val
-        if key == 'name':
+        if key == 'templatedisplaytext':
           if re.match(self.appname, val):
+            rnd.append(nd)
             if re.match('.*Running$', nd['state']):
               color = 'green'
             else:
               color = 'red'
 
-            print colored('=> %s (%s)' % (val,nd['serviceofferingname']), 'yellow'), colored('%s' % (nd['templatedisplaytext']), colord[nd['templatedisplaytext']]), colored('%s' % (nd['state']), color)
+            if self.__output:
+              print colored('=> %s (%s)' % (nd['name'],nd['serviceofferingname']), 'yellow'), colored('%s' % (nd['templatedisplaytext']), colord[nd['templatedisplaytext']]), colored('%s' % (nd['state']), color)
+
+    if not self.__output:
+      return rnd
+
 
   def nd_destroy(self):
     # turn off output
@@ -272,10 +359,20 @@ class Control:
       for n in node:
         print colored('=> NODE: %s ' % n['displayname'],'yellow')
 
-      answ = raw_input(colored('\nAre you user you want to destroy this node(s) [Yes|No]: ', 'white'))
-      if re.search('^(y|yes)$', answ, re.IGNORECASE):
+      names = []
+      if self.options.force:
         for n in node:
+          names.append(n['name'])
           self.acs.destroyVirtualMachine({'id': n['id'], 'expunge': 'true'})
+      else:
+        answ = raw_input(colored('\nAre you sure you want to destroy this node(s) [Yes|No]: ', 'white'))
+        if re.search('^(y|yes)$', answ, re.IGNORECASE):
+          for n in node:
+            names.append(n['name'])
+            self.acs.destroyVirtualMachine({'id': n['id'], 'expunge': 'true'})
+
+          print colored('\n=> DESTROYED:', 'yellow'), colored(', '.join(map(str, names)), 'green')
+
 
   def app(self):
     if self.appname == 'None':
