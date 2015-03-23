@@ -238,18 +238,19 @@ class Control:
       upload_url  = self.cfg.get('template')['upload_url']
       upload_file_params = {'file': upload_file_path }
 
-      m = magic.open(magic.MIME_TYPE)
-      m.load()
+      m = magic.Magic(magic.MAGIC_MIME_TYPE)
 
     except Exception, e:
+      m.close()
       print 'could not upload template', str(e)
       return False
 
     try:
       res = requests.put('%s/%s' % (upload_url, upload_file_path),
-          headers={'content-type': m.file(upload_file_path)},
+          headers={'content-type': m.id_filename(upload_file_path)},
           params=upload_file_params,
           data=open(upload_file_path).read())
+      m.close()
 
       return True
 
