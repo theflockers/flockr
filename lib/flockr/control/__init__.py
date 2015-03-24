@@ -10,6 +10,7 @@ from libcloud.compute.types import Provider
 from libcloud.compute.providers import get_driver
 
 
+import imp
 import os, sys, re
 import shutil, shlex
 import urllib,requests
@@ -26,8 +27,11 @@ class Control:
 
   cfg           = None
   main_cfg      = None
+
   __output      = True
   __already_off = False
+
+  __SITE__      =  imp.find_module('flockr')[1]
 
   def __init__(self, cfg):
     self.main_cfg = cfg
@@ -376,25 +380,34 @@ class Control:
 
 
   def app(self):
-    if self.appname == 'None':
+    if not self.appname:
       print colored('=> ERROR: ', 'yellow'), colored('Missing application name', 'red')
       return 0
 
     try:
+
+      print self.__SITE__
       os.mkdir(self.appname)
       f = open('%s/config.yaml' % (self.appname), 'w')
-      f.write(open('/usr/share/flockr/example/config.yaml-example','r').read())
+      f.write(open('%s/config.yaml-example' % self.__SITE__, 'r').read())
       f.close()
-    except Exception, e: pass
+      print colored('=> CREATED: ', 'yellow'), colored('application %s' % self.appname, 'green')
+    except Exception, e:
+      print colored('=> ERROR: ', 'yellow'), colored(str(e), 'red')
+
 
   def run(self, options):
     opts = ['deploy','build','app','template','node']
     self.options = options
+
+    if options.app and not options.appname:
+      options.appname = options.app
+
     self.appname = options.appname
 
-    if options.appname == None and options.app:
-      print colored('=> ERROR: ', 'yellow'), colored('Missing application name', 'red')
-      return 0
+    #if options.appname == None and options.app:
+    #  print colored('=> ERROR: ', 'yellow'), colored('Missing application name', 'red')
+    #  return 0
 
     for opt in opts:
       if eval('options.%s' % opt):

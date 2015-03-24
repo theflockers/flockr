@@ -14,7 +14,7 @@ class CmdLine:
     self.parser.add_option("-b", "--build", action="store_true", dest="build", help="build a image")
     self.parser.add_option("-d", "--destroy", action="store_true", dest="destroy", help="destroy a node or template")
     self.parser.add_option("-f", "--force", action="store_true", dest="force", help="force")
-    self.parser.add_option("-a", "--create-app", action="store_true", dest="app", help="new application")
+    self.parser.add_option("-a", "--create-app", action="store", dest="app", help="new application")
     self.parser.add_option("-t", "--template", action="store_true", dest="template", help="template")
     self.parser.add_option("-n", "--node", action="store_true", dest="node", help="node")
     self.parser.add_option("-r", "--register", action="store_true", dest="register", help="register a template (need -t --template option)")

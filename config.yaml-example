@@ -1,0 +1,24 @@
+build:
+  tmpdir: /tmp
+  base_format: TAR
+  base_url: base_operating_system_path_or_url
+  application_repository: application_repository_git_path_or_url
+  application_wwwroot: /var/www/html/
+  repository_type: TAR_or_GIT
+
+template:
+  zoneid: cloudstack_zone_id
+  ostypeid: cloudstack_os_type_id
+  upload_url: url_to_upload_to-must_have_put_option_enabled
+  display_url: url_that_cloudstack_sees
+  hypervisor: LXC
+  format: tar
+  hvm: false
+  passwordenabled: true
+  isextractable: true
+  versionate: true
+
+deploy:
+  security_groups: security_groups_separeted_by_comma
+  zoneid: cloudstack_zone_id
+  instance_size: instance_size_name
