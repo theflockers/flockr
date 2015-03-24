@@ -6,3 +6,4 @@ LXC manager for Cloudstack
 - pyyaml
 - CloudStack
 - filemagic
+- requests

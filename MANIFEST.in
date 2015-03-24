@@ -1,0 +1,2 @@
+include config.yaml-example
+include flockr.yaml-example
