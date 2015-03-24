@@ -1,7 +1,8 @@
 # flockr
-LXC manager for Cloudstack
 
-pip
-pyyaml
-CloudStack
-python-magic
+LXC manager for Cloudstack
+ 
+- pip
+- pyyaml
+- CloudStack
+- filemagic
