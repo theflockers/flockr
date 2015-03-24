@@ -74,7 +74,7 @@ class Control:
     except OSError, e:
       print colored('=> WARNING:', 'yellow'), colored('%s' % ( str(e) ), 'red')
 
-    shutil.copytree(srcdir, wwwroot)
+    shutil.copytree(srcdir, wwwroot, symlinks=True)
 
   def create_archive(self):
     print colored('=> Creating archive %s/%s.tar' % (self.appname, self.appname),'yellow')
