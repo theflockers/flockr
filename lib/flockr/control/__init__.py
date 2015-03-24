@@ -6,10 +6,6 @@ from threading import Thread
 from termcolor import colored, cprint
 from subprocess import Popen, call, PIPE, STDOUT
 
-from libcloud.compute.types import Provider
-from libcloud.compute.providers import get_driver
-
-
 import imp
 import os, sys, re
 import shutil, shlex
