@@ -11,7 +11,7 @@ setup(name='Flockr',
 #      packages = ['flockr.cmdline','flockr.config','flockr.control'],
       package_dir = {'': 'lib'},
       packages = find_packages('lib'),
-      install_requires =['CloudStack','filemagic','pyyaml'],
+      install_requires =['CloudStack','filemagic','pyyaml','termcolor'],
       scripts = ['bin/flockr'],
       data_files = [('flockr', ['config.yaml-example']),('/etc/flockr/', ['flockr.yaml-example']),]
     )
