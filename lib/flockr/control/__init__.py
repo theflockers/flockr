@@ -201,13 +201,17 @@ class Control:
 
   def tpl_register(self):
 
-    if not self.tpl_upload():
-      return False
-
     tplcfg = self.cfg.get('template')
     tplext = tplcfg['format'].lower()
     if tplcfg['isextractable']:
       tplext = '%s.gz' % tplext
+
+    ostype = self.acs.listOsTypes({'description': tplcfg['ostype']})[0]
+    if not ostype:
+      return False
+
+    if not self.tpl_upload():
+      return False
 
     tpldata = {
       'name': '%s:%s' % (self.appname, self.options.tplver),
@@ -216,7 +220,7 @@ class Control:
       'format': tplcfg['format'],
       'hypervisor': tplcfg['hypervisor'],
       'requireshvm': str(tplcfg['hvm']),
-      'ostypeid': tplcfg['ostypeid'],
+      'ostypeid': ostype['id'],
       'zoneid': tplcfg['zoneid'],
       'passwordenabled': str(tplcfg['passwordenabled']),
       'isextractable': str(tplcfg['isextractable']),
@@ -229,6 +233,7 @@ class Control:
 
   def tpl_upload(self):
     try:
+      m = magic.Magic(flags=magic.MAGIC_MIME_TYPE)
       tplcfg = self.cfg.get('template')
       tplext = tplcfg['format'].lower()
       if tplcfg['isextractable']:
@@ -237,8 +242,6 @@ class Control:
       upload_file_path = '%s/%s.%s' % (self.appname, self.appname, tplext)
       upload_url  = self.cfg.get('template')['upload_url']
       upload_file_params = {'file': upload_file_path }
-
-      m = magic.Magic(magic.MAGIC_MIME_TYPE)
 
     except Exception, e:
       m.close()
