@@ -12,5 +12,5 @@ setup(name='Flockr',
       package_dir = {'': 'lib'},
       packages = find_packages('lib'),
       install_requires =['CloudStack','filemagic'],
-      scripts = ['flockr'],
+      scripts = ['bin/flockr'],
     )

@@ -7,8 +7,19 @@ import flockr.config as config
 import flockr.cmdline as cmdline
 import flockr.control as control
 
-cfg = config.Config('/etc/flockr/flockr.yaml')
-cmd = cmdline.CmdLine()
-ctl = control.Control(cfg)
+def main():
+  try:
+    cfg = config.Config('/etc/flockr/flockr.yaml')
+    cmd = cmdline.CmdLine()
+    ctl = control.Control(cfg)
+    
+    ctl.run(cmd.get_options())
+  except KeyboardInterrupt:
+    print ""
+    sys.exit()
 
-ctl.run(cmd.get_options())
+
+if __name__ == '__main__':
+  main()
+
+
