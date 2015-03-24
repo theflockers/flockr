@@ -1,0 +1,7 @@
+production:
+  apikey: your_api_key
+  url: cloudstack_url 
+  expires: 600
+  secretkey: your_secret_key
+  timeout: 3600
+  verifysslcert: true
