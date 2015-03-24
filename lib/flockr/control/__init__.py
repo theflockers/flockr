@@ -286,7 +286,7 @@ class Control:
             if self.__output:
               print colored('=> %s' % val, 'yellow'), colored('%s' % (tpl['status']), color)
 
-            return tpld
+    return tpld
 
   def tpl_destroy(self):
     self.__output = False
