@@ -36,7 +36,8 @@ class Control:
     print colored('Base S.O. archive format:', 'yellow'), colored(self.cfg.get('build')['base_format'], 'green')
     print
     if self.cfg.get('build')['base_format'] == 'TAR':
-      tar = tarfile.open(self.cfg.get('build')['base_url'])
+      src = urllib.urlretrieve(self.cfg.get('build')['base_url'])
+      tar = tarfile.open(src[0])
       root_fs = '%s/root-fs' % (self.tmp_build_dir)
       try:
         print colored('=> Cleaning up tmpdir %s' % (self.tmp_build_dir), 'yellow')
