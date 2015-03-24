@@ -199,8 +199,7 @@ class Control:
     opts = ['list','destroy']
     for opt in opts:
       if eval('self.options.%s' % opt):
-        for n in options.nodename.split(','):
-          eval('self.nd_%s(node=%s)' % (opt,n))
+        eval('self.nd_%s()' % (opt))
 
 
   def tpl_register(self):
