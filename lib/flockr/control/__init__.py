@@ -382,7 +382,6 @@ class Control:
 
     try:
 
-      print self.__SITE__
       os.mkdir(self.appname)
       f = open('%s/config.yaml' % (self.appname), 'w')
       f.write(open('%s/config.yaml-example' % self.__SITE__, 'r').read())
