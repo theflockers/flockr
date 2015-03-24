@@ -129,6 +129,8 @@ class Control:
         instsize = self.options.instsize
 
       for c in range(int(numnodes)):
+        if not self.options.nodename:
+          self.options.nodename = self.appname
         nodename  = '%s-%i' % (self.options.nodename, random.uniform(10,99))
         # Node definition
         nodeData = {
