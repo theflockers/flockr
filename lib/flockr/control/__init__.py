@@ -199,7 +199,8 @@ class Control:
     opts = ['list','destroy']
     for opt in opts:
       if eval('self.options.%s' % opt):
-        eval('self.nd_%s()' % (opt))
+        for n in options.nodename.split(','):
+          eval('self.nd_%s(node=%s)' % (opt,n))
 
 
   def tpl_register(self):
@@ -311,8 +312,11 @@ class Control:
 
           print colored('\n=> DESTROYED:', 'yellow'), colored(', '.join(map(str, names)), 'green')
 
-  def nd_list(self):
+  def nd_list(self, node=False):
     args = {'templatefilter': 'self'}
+    # if node specified, override self.options.nodename
+    if node:
+      self.options.nodename = nodename
     if self.options.nodename:
       args['name'] = self.options.nodename
     if self.options.tplver:
@@ -356,7 +360,7 @@ class Control:
       return rnd
 
 
-  def nd_destroy(self):
+  def nd_destroy(self,node=False):
     # turn off output
     self.__output = False
 
