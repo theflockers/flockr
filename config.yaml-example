@@ -8,7 +8,7 @@ build:
 
 template:
   zoneid: cloudstack_zone_id
-  ostypeid: cloudstack_os_type_id
+  ostype: cloudstack_os_type_string_name
   upload_url: url_to_upload_to-must_have_put_option_enabled
   display_url: url_that_cloudstack_sees
   hypervisor: LXC
