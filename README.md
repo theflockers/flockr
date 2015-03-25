@@ -76,6 +76,7 @@ deploy:
 - application_repository: Where to get the code! 
 - application_wwwroot: where to put the code!
 - repository_type: TAR or GIT;
+
 ###### template:
 - zoneid: cloudstack zone id;
 - ostype: string containing Cloudstack O.S type (Ex. "CentOS 7");
@@ -87,6 +88,7 @@ deploy:
 - passwordenabled: If the template has the password script enabled;
 - isextractable: If template is compacted;
 - versionate: unused yet;
+
 ###### deploy:
 - security_groups: A comma separeted string of security groups names;
 - zoneid: cloudstack zone id;
