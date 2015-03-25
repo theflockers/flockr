@@ -127,7 +127,6 @@ Then, you can deploy your first **LXC application container**!
 ```shell
 ~ # flockr --deploy --application-name=myapp --template-version=v1.0 --num-nodes 3
 => SUCCESS: 3 nodes deployed
-~ # flockr --node --list --application-name myapp
 ~ # flockr --node --application-name=myapp --list
 => myapp-26 (small.local) myapp:v1.0 Starting
 => myapp-70 (small.local) myapp:v1.0 Starting
