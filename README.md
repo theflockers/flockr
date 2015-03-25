@@ -105,7 +105,7 @@ Base S.O. archive format: TAR
 
 => Cleaning up tmpdir /tmp/flockr-build
 => Extracting Base S.O. files to /tmp/flockr-build/root-fs
-=> Fetching application from http://deploy.dafiti.com.br/alice-current.tar.gz
+=> Fetching application from http://deploy.myserver.com.br/application-current.tar.gz
 => Merging /tmp/flockr-build/app/ with base s.o. into /tmp/flockr-build/root-fs//var/www/html/
 => Creating archive myapp/myapp.tar
 
