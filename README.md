@@ -1,5 +1,7 @@
 # Flockr
 
+[![Build Status](https://travis-ci.org/theflockers/flockr.svg?branch=master)](https://travis-ci.org/theflockers/flockr)
+
 Tool to manage LXC containers and XenServer VHD appliances on CloudStack
 
 ## Installation
