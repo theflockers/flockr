@@ -384,7 +384,7 @@ class Control:
           print colored('\n=> DESTROYED:', 'yellow'), colored(', '.join(map(str, names)), 'green')
 
 
-  def app(self):
+  def application(self):
     if not self.appname:
       print colored('=> ERROR: ', 'yellow'), colored('Missing application name', 'red')
       return 0
@@ -401,20 +401,26 @@ class Control:
 
 
   def run(self, options):
-    opts = ['deploy','build','app','template','node']
+
+    opts = ['deploy','build','application','template','node']
     self.options = options
 
-    if options.app and not options.appname:
-      options.appname = options.app
+    if options.application and not options.appname:
+      options.appname = options.application
 
+    print options
     self.appname = options.appname
 
     #if options.appname == None and options.app:
     #  print colored('=> ERROR: ', 'yellow'), colored('Missing application name', 'red')
     #  return 0
 
+    #for opt in opts:
+    #  if sys.argv[1] not in opts:
+    #    return False
+
     for opt in opts:
       if eval('options.%s' % opt):
-        if opt != 'app':
+        if opt != 'application':
           self.cfg = config.Config('%s/config.yaml' % (options.appname) )
         eval('self.%s()' % (opt) )
