@@ -1,2 +1,3 @@
-*.yaml
+flockr.yaml
+config.yaml
 *.pyc
