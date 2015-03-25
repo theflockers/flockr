@@ -124,6 +124,7 @@ Cloudstack template pointing to it:
 ```
 Then, you can deploy your first **LXC application container**!
 
+```shell
 ~ # flockr --deploy --application-name=myapp --template-version=v1.0 --num-nodes 3
 => SUCCESS: 3 nodes deployed
 ~ # flockr --node --list --application-name myapp
@@ -143,7 +144,7 @@ Then, you can deploy your first **LXC application container**!
 => myapp-26 (small.local) myapp:v1.0 Running
 => myapp-70 (small.local) myapp:v1.0 Running
 => myapp-73 (small.local) myapp:v1.0 Running
-
+```
 ## TODO
 - use a database (bdb or sqlite) to save application data;
 - save the hosts indexes inside the database;
