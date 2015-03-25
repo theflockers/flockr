@@ -410,8 +410,8 @@ class Control:
 
     self.appname = options.appname
 
-    #if options.appname == None and options.app:
-    #  print colored('=> ERROR: ', 'yellow'), colored('Missing application name', 'red')
+    ##if options.appname == None and options.app:
+    ##  print colored('=> ERROR: ', 'yellow'), colored('Missing application name', 'red')
     #  return 0
 
     #for opt in opts:
