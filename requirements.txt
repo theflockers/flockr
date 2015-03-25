@@ -1,0 +1,6 @@
+Flockr
+CloudStack
+filemagic
+pyyaml
+termcolor
+requests
