@@ -408,7 +408,6 @@ class Control:
     if options.application and not options.appname:
       options.appname = options.application
 
-    print options
     self.appname = options.appname
 
     #if options.appname == None and options.app:
