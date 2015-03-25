@@ -1,4 +1,3 @@
-Flockr
 CloudStack
 filemagic
 pyyaml
