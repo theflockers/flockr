@@ -4,7 +4,7 @@ python:
 install:
     - pip install -r requirements.txt
 script:
-  - find |grep CloudStack
-  - PYTHONPATH=/home/travis/virtualenv/python2.7.9/lib/python2.7/site-package/Users/larstobi/Library/Python/2.7/site-packages/
+  - find .
+  - PYTHONPATH=/home/travis/virtualenv/python2.7.9/lib/python2.7/site-packages/Users/larstobi/Library/Python/2.7/site-packages/
   - python -c "import sys;print sys.path"
   - nosetests
