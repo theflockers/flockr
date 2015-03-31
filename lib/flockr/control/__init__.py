@@ -10,8 +10,9 @@ import imp
 import os, sys, re
 import shutil, shlex
 import urllib,requests
-import tarfile
+import tarfile, tempfile
 from pprint import pprint
+from contextlib import closing
 import random, time
 import magic
 
@@ -37,17 +38,22 @@ class Control:
     print
     if self.cfg.get('build')['base_format'] == 'TAR':
       src = urllib.urlretrieve(self.cfg.get('build')['base_url'])
-      tar = tarfile.open(src[0])
-      root_fs = '%s/root-fs' % (self.tmp_build_dir)
+      #tmp = tempfile.NamedTemporaryFile(delete=False)
+      #with closing(requests.get(self.cfg.get('build')['base_url'], stream=True)) as r:
+      #  tmp.write(r.content)
+      #  tmp.flush()
+      #tmp.close()
+      #tar = tarfile.open(tmp.name)
       try:
+        tar = tarfile.open(src[0])
+        root_fs = '%s/root-fs' % (self.tmp_build_dir)
         print colored('=> Cleaning up tmpdir %s' % (self.tmp_build_dir), 'yellow')
         shutil.rmtree(self.tmp_build_dir)
         os.makedirs(root_fs)
+        print colored('=> Extracting Base S.O. files to %s' % (root_fs), 'yellow')
+        tar.extractall(root_fs)
       except Exception, e:
         print str(e)
-
-      print colored('=> Extracting Base S.O. files to %s' % (root_fs), 'yellow')
-      tar.extractall(root_fs)
 
   def clone_application(self):
     app_dir = '%s/app' % self.tmp_build_dir
@@ -159,8 +165,9 @@ class Control:
 
     print colored( '\n* Building app %s *\n' % self.appname, 'yellow')
     self.download_base_system()
-    self.clone_application()
-    self.merge_application()
+    if self.cfg.get('build')['deploy_app']:
+      self.clone_application()
+      self.merge_application()
 
     if re.search('^lxc$', self.options.buildtype, re.IGNORECASE):
       self.create_archive()
@@ -353,7 +360,7 @@ class Control:
               color = 'red'
 
             if self.__output:
-              print colored('=> %s (%s)' % (nd['name'],nd['serviceofferingname']), 'yellow'), colored('%s' % (nd['templatedisplaytext']), colord[nd['templatedisplaytext']]), colored('%s' % (nd['state']), color)
+              print colored('=> %s (%s) (%s)' % (nd['name'],nd['serviceofferingname'], nd['nic'][0]['ipaddress']), 'yellow'), colored('%s' % (nd['templatedisplaytext']), colord[nd['templatedisplaytext']]), colored('%s' % (nd['state']), color)
 
     if not self.__output:
       return rnd
