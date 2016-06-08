@@ -1,0 +1,10 @@
+Source: flockr
+Section: devel
+Maintainer: Leandro Mendes
+
+Package: flockr
+Priority: optional
+Section: devel
+Architecture: all
+Depends: python (>= 2.7)
+Description: A shitty test to create .deb. packages.
