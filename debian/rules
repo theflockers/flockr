@@ -1,0 +1,30 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+%:
+	dh  $@
+
+override_dh_auto_install:
+	dh_auto_install
+
+	for dir in bin usr lib local include; \
+	do \
+		mkdir -p debian/tmp/opt/flockr/$$dir; \
+	done
+
+	find . -type f |grep -v debian | while read file; \
+	do \
+		cp --parents -r "$$file" debian/tmp/opt/flockr/ ; \
+	done
+
+	find . -type l |grep -v debian | while read link; \
+	do \
+		ln -s $$link debian/tmp/opt/flockr/$$link; \
+	done
+
+	sed -i "s/VIRTUAL_ENV\=.*/VIRTUAL_ENV\=\/opt\/flockr\//g" debian/tmp/opt/flockr/bin/activate
+override_dh_install:
+	dh_install --fail-missing
