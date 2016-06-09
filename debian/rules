@@ -22,7 +22,7 @@ override_dh_auto_install:
 
 	find . -type l |grep -v debian | while read link; \
 	do \
-		ln -s $$(readline $$link) debian/tmp/opt/flockr/$$link; \
+		ln -s $$(readlink $$link) debian/tmp/opt/flockr/$$link; \
 	done
 
 	sed -i "s/VIRTUAL_ENV\=.*/VIRTUAL_ENV\=\/opt\/flockr\//g" debian/tmp/opt/flockr/bin/activate
